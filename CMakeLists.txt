@@ -2,19 +2,59 @@ cmake_minimum_required(VERSION 3.10)
 
 project(gs-builder)
 
+include(FetchContent)
+
+set(SPDLOG_BUILD_SHARED OFF)
+set(SPDLOG_BUILD_PIC ON)
+
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG v1.13.0
+)
+FetchContent_MakeAvailable(spdlog)
+
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
 
+find_package(yaml-cpp REQUIRED)
+
 include_directories(
     src
-    ${GSTREAMER_INCLUDE_DIRS})
+    ${GSTREAMER_INCLUDE_DIRS}
+
+    # tests
+    tests
+)
 
 link_directories(${GSTREAMER_LIBRARY_DIRS})
-# add_definitions(${GSTREAMER_CFLAGS_OTHER})
 
+# App
 
-add_executable(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
     src/main.cpp
-)   
 
-target_link_libraries(${PROJECT_NAME} ${GSTREAMER_LIBRARIES})
+    # Graph
+    src/graph/GraphNode.cpp
+    src/graph/YamlGraphBuilder.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}
+    ${GSTREAMER_LIBRARIES}
+    yaml-cpp
+    spdlog::spdlog
+)
+
+# Tests
+
+add_executable(${PROJECT_NAME}-tests
+    tests/graph/YamlGraphBuilderTests.cpp
+    tests/main.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}-tests
+    ${GSTREAMER_LIBRARIES}
+    ${PROJECT_NAME}
+    gtest
+)

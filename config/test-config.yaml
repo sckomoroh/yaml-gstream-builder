@@ -1,0 +1,170 @@
+pipelines:
+  pipeline-0:
+    type: pipeline
+
+    source-bin:
+      type: bin
+
+      source-bin-uridecodebin:
+        type: uridecodebin
+
+        uri: rtsp://192.168.0.103:8554/camera
+        use-buffering: 1
+
+      source-bin-mux:
+        type: nvstreammux
+
+        width: 1280
+        height: 720
+        live-source: 1
+        enable-padding: 0
+        batched-push-timeout: 40000
+        batch-size: 1
+
+      source-bin-mux-queue:
+        type: queue
+
+    infer-bin:
+      type: bin
+
+      infer-bin-yolo-face-nvinfer:
+        type: nvinfer
+
+        config-file-path: /ws/configs/yolo-infer-config.yaml
+
+      infer-bin-yoloface-queue:
+        type: queue
+
+      infer-bin-tee:
+        type: tee
+
+      infer-bin-tee-headpose-queue:
+        type: queue
+
+      infer-bin-tee-landmarks-queue:
+        type: queue
+
+      infer-bin-headpose-infer:
+        type: nvinfer
+        config-file-path: /ws/configs/landmarks-infer-config.yaml
+
+      infer-bin-headpose-facepose:
+        type: facepose
+
+      infer-bin-headpose-infer-qeueue:
+        type: queue
+
+      infer-bin-emb-infer:
+        type: nvinfer
+        config-file-path: /ws/configs/glintr100-infer-config.yaml
+
+      infer-bin-emb:
+        type: embeddings
+
+      infer-bin-emb-infer-qeueue:
+        type: queue
+
+      infer-bin-metadata-mux:
+        type: nvdsmetamux
+
+      infer-bin-nvdslogger:
+        type: nvdslogger
+
+      infer-bin-nvmultistreamtiler:
+        type: nvmultistreamtiler
+
+      infer-bin-nvmultistreamtiler-queue:
+        type: queue
+
+    sink-bin:
+      type: bin
+
+      sink-bin-nvvideoconvert:
+        type: nvvideoconvert
+
+      sink-bin-convert-queue:
+        type: queue
+
+      sink-bin-nvdsosd:
+        type: nvdsosd
+
+      sink-bin-nvdsosd-queue:
+        type: queue
+
+      sink-bin-tee:
+        type: tee
+
+      sink-bin-recorder-tee-queue:
+        type: queue
+
+      # msgbroker-tee-queue:
+      #   type: queue
+
+      # recorder-capsfilter:
+      #   type: capsfilter
+
+      #   caps: video/x-raw,format=I420,width=1280,height=720,framerate=30/1
+
+      sink-bin-recorder-bin:
+        type: bin
+
+        recorder-videoconvert:
+          type: nvvideoconvert
+
+        recorder-x264enc-0:
+          type: x264enc
+
+        recorder-h264parse-0:
+          type: h264parse
+
+        recorder-mp4mux:
+          type: mp4mux
+
+        recorder-filesink-0:
+          type: filesink
+          sync: false
+          location: /ws/output/result.mp4
+
+links:
+  pipeline-0:
+    # infer-bin
+    infer-bin-yolo-face-nvinfer: infer-bin-yoloface-queue
+    infer-bin-yoloface-queue: infer-bin-tee
+    infer-bin-tee: infer-bin-tee-headpose-queue
+    infer-bin-tee: infer-bin-tee-landmarks-queue
+    
+    infer-bin-tee-headpose-queue: infer-bin-headpose-infer
+    infer-bin-headpose-infer: infer-bin-headpose-facepose
+    infer-bin-headpose-facepose: infer-bin-headpose-infer-qeueue
+    infer-bin-headpose-infer-qeueue: infer-bin-metadata-mux
+    
+    infer-bin-tee-landmarks-queue: infer-bin-emb-infer
+    infer-bin-emb-infer: infer-bin-emb
+    infer-bin-emb: infer-bin-emb-infer-qeueue
+    infer-bin-emb-infer-qeueue: infer-bin-metadata-mux
+
+    infer-bin-metadata-mux: infer-bin-nvdslogger
+    infer-bin-nvdslogger: infer-bin-nvmultistreamtiler
+    infer-bin-nvmultistreamtiler: infer-bin-nvmultistreamtiler-queue
+
+    # sink-bin
+    sink-bin-nvvideoconvert: sink-bin-convert-queue
+    sink-bin-convert-queue: sink-bin-nvdsosd
+    sink-bin-nvdsosd: sink-bin-nvdsosd-queue
+    sink-bin-nvdsosd-queue: sink-bin-tee
+    sink-bin-tee: sink-bin-recorder-tee-queue
+    sink-bin-recorder-tee-queue: sink-bin-recorder-bin
+
+    # sink-bin-recorder-bin
+    recorder-videoconvert: recorder-x264enc-0
+    recorder-x264enc-0: recorder-h264parse-0
+    recorder-h264parse-0: recorder-mp4mux
+    recorder-mp4mux: recorder-filesink-0
+
+    # source-bin
+    source-bin-uridecodebin: source-bin-mux
+    source-bin-mux: source-bin-mux-queue
+
+    # pipeline
+    source-bin: infer-bin
+    infer-bin: sink-bin

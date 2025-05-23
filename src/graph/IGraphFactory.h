@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+enum class EGraphFactory { YAML };
+
 class IGraphNode {
 public:
     using Ptr = std::shared_ptr<IGraphNode>;
@@ -21,8 +23,13 @@ public:
 
 class IGraphFactory {
 public:
+    using Ptr = std::shared_ptr<IGraphFactory>;
+
+public:
     virtual ~IGraphFactory() = default;
 
 public:
     virtual IGraphNode::Ptr fromConfig(const std::string& fileName) = 0;
 };
+
+IGraphFactory::Ptr createFactory(EGraphFactory factory);

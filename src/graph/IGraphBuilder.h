@@ -19,6 +19,8 @@ public:
     virtual std::string getFactory() const = 0;
     virtual std::unordered_map<std::string, std::string> getProperties() const = 0;
     virtual std::list<Ptr> getLinks() const = 0;
+    virtual std::string getCapsName() const = 0;
+    virtual std::list<Ptr> getChildren() const = 0;
 };
 
 class IGraphBuilder {

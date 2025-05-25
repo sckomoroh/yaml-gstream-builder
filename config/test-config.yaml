@@ -127,11 +127,13 @@ pipelines:
 
 links:
   pipeline-0:
+    
     # infer-bin
     infer-bin-yolo-face-nvinfer: infer-bin-yoloface-queue
     infer-bin-yoloface-queue: infer-bin-tee
-    infer-bin-tee: infer-bin-tee-headpose-queue
-    infer-bin-tee: infer-bin-tee-landmarks-queue
+    infer-bin-tee: 
+      - infer-bin-tee-headpose-queue
+      - infer-bin-tee-landmarks-queue
     
     infer-bin-tee-headpose-queue: infer-bin-headpose-infer
     infer-bin-headpose-infer: infer-bin-headpose-facepose
@@ -152,7 +154,9 @@ links:
     sink-bin-convert-queue: sink-bin-nvdsosd
     sink-bin-nvdsosd: sink-bin-nvdsosd-queue
     sink-bin-nvdsosd-queue: sink-bin-tee
-    sink-bin-tee: sink-bin-recorder-tee-queue
+    sink-bin-tee:
+      - sink-bin-recorder-tee-queue
+
     sink-bin-recorder-tee-queue: sink-bin-recorder-bin
 
     # sink-bin-recorder-bin
